@@ -1,4 +1,4 @@
-import cv2
+import cv2 #モーショントラッキング
 import os
 import base64
 import json
@@ -6,25 +6,24 @@ import random
 import time
 import shutil
 import sys
-from xml.etree.ElementTree import *
+from xml.etree.ElementTree import *　# アノテーションした画像をxml形式に格納する
 from werkzeug.utils import secure_filename
 from flask import *
 import cuttoxml
-classcount=80
-UPLOAD_FOLDER = './uploads'
+classcount=80　#すでにあるクラス数
+UPLOAD_FOLDER = './uploads'　#送られてくる動画を保存するもの
 ALLOWED_EXTENSIONS = set(['mp4', 'mov','avi', 'm4a'])
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-ur="http://localhost:8080/"
+ur="http://localhost:8080/"　#公開サイト
 def start():
     os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-    app.run(port=8080)
+    app.run(port=8080)#なぜか好む8080で開放
 
 def allwed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS　　 # 拡張子を.以降取り出し、許可された拡張子か確認
 
-def xmwrite(p,fai,posx,posy,posx2,posy2):
-    #print(fn)
+def xmwrite(p,fai,posx,posy,posx2,posy2): # tree構造を気合で・・（´・ω・｀）
     an=Element('annotation')
     fn=SubElement(an,'filename')
     fn.text=fai
@@ -71,31 +70,28 @@ def xmwrite(p,fai,posx,posy,posx2,posy2):
     tree.write(p)
 
 def frame_resize(frame, n=2):
-    """
-    スクリーンショットを撮りたい関係で1/4サイズに縮小
-    """
+    #画面に収めるため縮小　（座標ずれに注意）
     return cv2.resize(frame, (int(frame.shape[1]*0.25), int(frame.shape[0]*0.25)))
 
 
 
-@app.route('/', methods=['GET', 'POST'])
+@app.route('/', methods=['GET', 'POST'])#GET,POSTを許可
 def uploads_file():
     global fn,lab
-    # リクエストがポストかどうかの判別
-    if request.method == 'POST':
+    if request.method == 'POST': #POSTrec
         # ファイルがなかった場合の処理
-        if 'file' not in request.files:
+        if 'file' not in request.files:　#ファイル選択
             print('ファイルがありません')
             return redirect(request.url)
         # データの取り出し
         file = request.files['file']
         # ファイル名がなかった時の処理
-        if file.filename == '':
+        if file.filename == '': 
             print('ファイルがありません')
             return redirect(request.url)
         # ファイルのチェック
         if file and allwed_file(file.filename):
-            # 危険な文字を削除（サニタイズ処理）
+            # サニタイズ処理
             filename = secure_filename(file.filename)
             fn=file.filename
             lab = request.form['label']
@@ -105,31 +101,31 @@ def uploads_file():
             return redirect(url_for('uploaded_file', filename=filename))
     return render_template('index.html')
 
-@app.route('/ret', methods=['GET', 'POST'])
+@app.route('/ret', methods=['GET', 'POST'])#GET,POSTを許可
 def posdata():
     global xd,yd,xxd,yyd
     # リクエストがポストかどうかの判別
     if request.method == 'POST':
         print('in')
         # データの取り出し
-        xd = request.form['x']
-        yd = request.form['y']
-        xxd = request.form['xx']
-        yyd = request.form['yy']
+        xd = request.form['x']#1フレーム目のbbox 1つ目x
+        yd = request.form['y']#1フレーム目のbbox 1つ目y
+        xxd = request.form['xx']#1フレーム目のbbox もう片方のx（差分）
+        yyd = request.form['yy']#1フレーム目のbbox もう片方のy　(差分)
         print(xd,yd,xxd,yyd)
-        return redirect('t')
+        return redirect('t')#tへ推移させる
 
-@app.route('/t', methods=['GET', 'POST'])
+@app.route('/t', methods=['GET', 'POST'])#GET,POSTを許可
 def up():
     global lab
-    tracker = cv2.TrackerMIL_create()
-    digit = len(str(int(cap.get(cv2.CAP_PROP_FRAME_COUNT))))
+    tracker = cv2.TrackerMIL_create()#トラッキングのインスタンスを作成
+    digit = len(str(int(cap.get(cv2.CAP_PROP_FRAME_COUNT))))#フレーム桁数をカウント
     n=0
-    src = './data/coco.names'
-    copy = dir+"/classes.names"
-    shutil.copyfile(src,copy)
-    cf = open("config/"+"custom"+rad+".data", 'a')
-    cf.write("classes="+str(classcount)+"\n"+"train="+dir+"/train.txt\nvalid="+dir+"/valid.txt\nnames="+dir+"/classes.names")
+    src = './data/coco.names'#現在のクラス名を取得
+    copy = dir+"/classes.names"#クラスの名前生成
+    shutil.copyfile(src,copy)#フレーム桁数をカウント
+    cf = open("config/"+"custom"+rad+".data", 'a')#カスタムデータの作成
+    cf.write("classes="+str(classcount)+"\n"+"train="+dir+"/train.txt\nvalid="+dir+"/valid.txt\nnames="+dir+"/classes.names")#クラス数、trainリスト、validリストを生成
     cf.close()
     valid = open(dir+"/valid.txt", 'a')
     train = open(dir+"/train.txt", 'a')
@@ -145,10 +141,6 @@ def up():
         fr=frame
         p1=int(float(xd)),int(float(yd))
         p2=int(float(xxd)),int(float(yyd))
-        ##cv2.rectangle(fr, (96,220),(158,292), (0,255,0), 2, 1)
-        #cv2.imshow("T", fr)
-        #cv2.rectangle(frame, (96,220),(63,69),(0,255,0), 2, 1)
-        #cv2.imshow("a", frame)
         bbox = (int(float(xd)),int(float(yd)),int(float(xxd)),int(float(yyd)))
         print(bbox)
         #bbox = cv2.selectROI(frame, False)
@@ -159,8 +151,7 @@ def up():
             break;
     print("ok")
     while True:
-        # VideoCaptureから1フレーム読み込む
-        ret, frame = cap.read()
+        ret, frame = cap.read()　#1フレーム読み込み
         if not ret:
             break;
         frame = frame_resize(frame)
