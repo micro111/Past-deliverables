@@ -10,3 +10,6 @@ pip install opencv-python
 pip install Jinja2 redis Werkzeug
 pip insatll flask
 sudo apt-get install redis-server
+
+
+実行は webcuttoxml.pyを実行してください。
