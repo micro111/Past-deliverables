@@ -9,18 +9,17 @@ import sys
 from xml.etree.ElementTree import * #アノテーションした画像をxml形式に格納する
 from werkzeug.utils import secure_filename
 from flask import *
-import cuttoxml
+#import cuttoxml
 
-classcount=80       #すでにあるクラス数
+classcount=0      #すでにあるクラス数
 UPLOAD_FOLDER = './uploads'     #送られてくる動画を保存するもの
 ALLOWED_EXTENSIONS = set(['mp4', 'mov','avi', 'm4a'])
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-ur="http://localhost:8080/" #公開サイト
-os.makedirs("config", exist_ok=True)
+
 def start():
     os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-    app.run(port=8080)  #なぜか好む8080で開放
+    app.run(host="0.0.0.0",port=8080)  #なぜか好む8080で開放
 
 def allwed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS     # 拡張子を.以降取り出し、許可された拡張子か確認
@@ -115,17 +114,17 @@ def posdata():
         xxd = request.form['xx']#1フレーム目のbbox もう片方のx（差分）
         yyd = request.form['yy']#1フレーム目のbbox もう片方のy　(差分)
         print(xd,yd,xxd,yyd)
-        return redirect('t')#tへ推移させる
+        return redirect('trackstart')#tへ推移させる
 
-@app.route('/t', methods=['GET', 'POST'])#GET,POSTを許可
+@app.route('/trackstart', methods=['GET', 'POST'])#GET,POSTを許可
 def up():
     global lab
     tracker = cv2.TrackerMIL_create()#トラッキングのインスタンスを作成
     digit = len(str(int(cap.get(cv2.CAP_PROP_FRAME_COUNT))))#フレーム桁数をカウント
     n=0
-    src = './data/coco.names'#現在のクラス名を取得
+    src = './data/class.names'#現在のクラス名パス
     copy = dir+"/classes.names"#クラスの名前生成
-    shutil.copyfile(src,copy)#フレーム桁数をカウント
+    shutil.copyfile(src,copy)#コピーする
     cf = open("config/"+"custom"+rad+".data",'a+')#カスタムデータの作成
     cf.write("classes="+str(classcount)+"\n"+"train="+dir+"/train.txt\nvalid="+dir+"/valid.txt\nnames="+dir+"/classes.names")#クラス数、trainリスト、validリストを生成
     cf.close()
@@ -212,8 +211,8 @@ def up():
     print("chmod 777 config/* && chmod 777 "+dir+"/*")
     print("bash config/create_custom_model.sh <num-classes>")
     print("python3 train.py --model_def config/yolov3-custom.cfg --data_config config/custom"+rad+".data")
-    cuttoxml.start()
-
+    #cuttoxml.start()
+    return redirect('/')
 
 @app.route('/uploads/<filename>')
 # ファイルを表示する
@@ -246,5 +245,6 @@ def uploaded_file(filename):
     # レスポンスのjsonに箱詰め
     return render_template('res.html',data= img_base64,h=height,w=width)
     #return jsonify({"language": img_base64})
+
 if __name__=='__main__':
-    cuttoxml.start()
+    start()
