@@ -10,8 +10,7 @@ youtube から音源引っ張ってくるBOTです。
   zip圧縮
 があります  
 
-require 
-
+requireしているもの
 node.js
 discord.js
 ytdl-core
@@ -21,7 +20,8 @@ readline
 date-utils
 
 を使用しています。
-機能後付けで趣味の脳筋プログラミングを行っているため読みずらいかもしれません。
+機能後付けで趣味の脳筋プログラミングを行っているため読みづらいです。
+申し訳ございません。
 
 
-実行はnode music0.jsを行ってください。
+実行はnode music0.jsで行ってください。
